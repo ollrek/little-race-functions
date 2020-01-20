@@ -1,8 +1,8 @@
-const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
 const fetch = require('node-fetch');
-const db = admin.firestore()
+const spark = admin.app("spark");
+const db = spark.firestore()
 
 async function getAllProgress() {
     var guilds = [];

@@ -1,8 +1,9 @@
-const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const spark = admin.app("spark");
+const db = spark.firestore()
+
 const { RAID_SIZE, RAID_TIME } = require('../data/leagueNameByObj');
-const getSlug = require('speakingurl')
-const db = admin.firestore();
+const getSlug = require('speakingurl');
 
 // Arbitrary league size
 const leagueSize = 20;
@@ -142,18 +143,18 @@ async function dailyTally() {
         await addToLeague(guild, progress).then((res) => {
             // If OK (league id) update flags
             if (res && res.id) {
-                // db.collection("guilds").doc(guild.id).update({
-                //     tag: false,
-                //     active: true,
-                //     ["raid_objectives." + progress + ".league"]: res
-                // }, { merge: true })
-                //     .then(() => {
+                db.collection("guilds").doc(guild.id).update({
+                    tag: false,
+                    active: true,
+                    ["raid_objectives." + progress + ".league"]: res
+                }, { merge: true })
+                    .then(() => {
                         console.log(guild.name + ' flagged to league ' + guild.raid_objectives[progress].slug + ' ' + res.id);
-                    //     return;
-                    // })
-                    // .catch((error) => {
-                    //     throw new Error("Error updating document: " + error);
-                    // });
+                        return;
+                    })
+                    .catch((error) => {
+                        throw new Error("Error updating document: " + error);
+                    });
             }
             // If not, nothing
         });

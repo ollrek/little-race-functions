@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
-admin.initializeApp({ credential: admin.credential.cert(require('./little-race-firebase-adminsdk-awscw-4469ee488a.json')) });
+admin.initializeApp({ credential: admin.credential.cert(require('./little-race-firebase-adminsdk-awscw-4469ee488a.json')) }, "spark");
+admin.initializeApp({ credential: admin.credential.cert(require('./little-race-scheduler-firebase-adminsdk-cedyr-9bcd0df843.json')) });
 
 // The Cloud Functions for Firebase SDK to create Cloud Functions and setup triggers.
 const functions = require('firebase-functions');
