@@ -22,11 +22,13 @@ const { dailyTally, generateParentLeagues } = require('./src/leagueManager');
 // exports.generateInit = functions.https.onRequest((request, response) => {
 //     generateParentLeagues();
 // });
+// exports.testDailyTally = functions.https.onRequest((request, response) => {
+//     dailyTally();
+// });
 
-exports.testDailyTally = functions.https.onRequest((request, response) => {
-    dailyTally();
-});
-
-exports.getAllProgress = functions.pubsub.schedule('every monday 05:00').onRun((context) => {
+exports.getAllProgress = functions.pubsub.schedule('every day 06:00').onRun((context) => {
     ProgressFct.getAllProgress();
+});
+exports.dailyTally = functions.pubsub.schedule('every day 05:00').onRun((context) => {
+    dailyTally();
 });

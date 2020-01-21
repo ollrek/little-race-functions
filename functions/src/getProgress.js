@@ -25,19 +25,11 @@ async function getAllProgress() {
         fetch('https://raider.io/api/v1/guilds/profile?' + params_string + '&fields=raid_rankings,raid_progression')
             .then(res => res.json())
             .then(json => {
-                if (json.error) console.log(params_string + ' KO ' + json.message)
-                else {
-                    db.collection("guilds").doc(guild.id).update({ raid_rankings: json.raid_rankings, raid_progression: json.raid_progression })
-                        .then(() => {
-                            console.log(params_string + ' OK');
-                            return;
-                        })
-                        .catch((error) => {
-                            throw new Error("Error updating document: " + error);
-                        });
-                }
-
-                return;
+                if (json.error) throw Error(params_string + ' KO ' + json.message)
+                return db.collection("guilds").doc(guild.id).update({ raid_rankings: json.raid_rankings, raid_progression: json.raid_progression })
+            }).then(() => {
+                console.log(params_string + ' OK');
+                return; //Nothing
             }).catch((error) => {
                 console.error(error);
             });

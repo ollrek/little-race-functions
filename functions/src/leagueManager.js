@@ -25,7 +25,7 @@ async function generateParentLeagues() {
     for (let [mKey, mValue] of Object.entries(RAID_MODE)) {
         for (let [sKey, sValue] of Object.entries(RAID_SIZE)) {
             for (let [tKey, tValue] of Object.entries(RAID_TIME)) {
-                dbRef = db.collection("leagues").doc(progress).collection("objective").doc((mKey * 100 + sKey * 10 + tKey * 1) + '').set({
+                dbRef = db.collection("leagues").doc(progress).collection("objective").doc(String(mKey * 100 + sKey * 10 + Number(tKey))).set({
                     name: `${tValue} ${mValue.name} ${sValue}`,
                     slug: getSlug(`${tValue} ${mValue.name} ${sValue}`),
                     icon: mValue.icon
@@ -39,11 +39,15 @@ async function generateParentLeagues() {
 async function createLeague(ref, id, guild) {
     const parent = await ref.get().then(snapshot => {
         if (snapshot.exists) {
-            return { ...snapshot.data(), ...{ id: snapshot.id } };
-        }
+            return Object.assign(snapshot.data(), { id: snapshot.id });
+        } else
+            return {}
     }).catch((e) => {
         console.log(e)
     });
+
+    if (parent === {})
+        return {}
 
     const data = {
         guilds: guild ? [guild] : [],
@@ -53,7 +57,7 @@ async function createLeague(ref, id, guild) {
         slug: parent.slug + '-' + id
     };
 
-    await ref.collection("objLeagues").doc(id + '').set(data)
+    await ref.collection("objLeagues").doc(String(id)).set(data)
 
     return {
         icon: data.icon,
@@ -67,7 +71,7 @@ async function createLeague(ref, id, guild) {
 async function getCurrentLeague(ref) {
     return await ref.collection("objLeagues").where("full", "==", false).get().then(snapshot => {
         if (!snapshot.empty) {
-            return { ...snapshot.docs[0].data(), ...{ id: snapshot.docs[0].id } };
+            return Object.assign(snapshot.docs[0].data(), { id: snapshot.docs[0].id });
         } else {
             return undefined;
         }
@@ -78,14 +82,13 @@ async function getCurrentLeague(ref) {
 
 // Method to add a guild to a league for current content
 async function addToLeague(guild, progress) {
-    if (guild.raid_objectives && guild.raid_objectives[progress] && guild.raid_objectives[progress].slug) {
-        const dbRef = db.collection("leagues").doc(progress).collection("objective").doc(guild.raid_objectives[progress].slug + '');
+    if (guild.raid_objectives && guild.raid_objectives[progress] && guild.raid_objectives[progress].slug && !(guild.leagues && guild.leagues[progress])) {
+        const dbRef = db.collection("leagues").doc(progress).collection("objective").doc(String(guild.raid_objectives[progress].slug));
         const objLeague = await getCurrentLeague(dbRef);
 
         if (objLeague === undefined) {
             return await createLeague(dbRef, 1, guild.id)
         } else {
-            console.log('guild', guild.id)
             const full = objLeague.guilds.push(guild.id) >= leagueSize;
 
             await dbRef.collection("objLeagues").doc(objLeague.id).update({
@@ -106,7 +109,7 @@ async function addToLeague(guild, progress) {
         }
     } else
         return {}
-};
+}
 
 // Daily processing of new guilds
 async function dailyTally() {
@@ -140,24 +143,28 @@ async function dailyTally() {
     // Process for each tagged guilds
     for (guild of guilds) {
         // Add to a league
+        /* eslint-disable no-await-in-loop, no-loop-func */
         await addToLeague(guild, progress).then((res) => {
             // If OK (league id) update flags
             if (res && res.id) {
                 db.collection("guilds").doc(guild.id).update({
                     tag: false,
                     active: true,
-                    ["raid_objectives." + progress + ".league"]: res
-                }, { merge: true })
-                    .then(() => {
-                        console.log(guild.name + ' flagged to league ' + guild.raid_objectives[progress].slug + ' ' + res.id);
-                        return;
-                    })
-                    .catch((error) => {
-                        throw new Error("Error updating document: " + error);
-                    });
-            }
-            // If not, nothing
+                    ["leagues." + progress]: res
+                });
+
+                return res;
+            } else
+                // If not, nothing
+                return undefined;
+        }).then((res) => {
+            if (res)
+                console.log(guild.name + ' flagged to league ' + guild.raid_objectives[progress].slug + ' ' + res.id)
+            return;
+        }).catch((error) => {
+            throw new Error("Error updating document: " + error);
         });
+        /* eslint-enable no-await-in-loop, no-loop-func */
     }
 }
 
